@@ -2,8 +2,8 @@ import os
 import mimetypes
 import threading
 import requests
-from flask import Flask, Response, abort
 
+from flask import Flask, Response, abort
 from telegram import Update
 from telegram.ext import (
     Application,
@@ -19,7 +19,7 @@ from telegram.ext import (
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Render automatically provides this variable.
+# Render automatically provides this variable
 BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
 
 if not BOT_TOKEN:
@@ -55,19 +55,29 @@ def serve_file(file_id):
 
     try:
         # Ask Telegram for the current file path
-        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile"
+        telegram_url = (
+            f"https://api.telegram.org/bot{BOT_TOKEN}/getFile"
+        )
+
         result = requests.get(
-            url,
+            telegram_url,
             params={"file_id": file_id},
             timeout=30,
         )
 
+        # Make sure Telegram returned valid JSON
+        result.raise_for_status()
+
         data = result.json()
 
+        # Check Telegram response
         if not data.get("ok"):
+            print("Telegram getFile error:", data)
             abort(404)
 
         file_path = data["result"]["file_path"]
+
+        print("Telegram file path:", file_path)
 
         # Current Telegram download URL
         download_url = (
@@ -75,14 +85,18 @@ def serve_file(file_id):
             f"{BOT_TOKEN}/{file_path}"
         )
 
-        # Stream the file to the user
+        # Stream the file from Telegram
         r = requests.get(
             download_url,
             stream=True,
             timeout=60,
         )
 
+        print("Telegram download status:", r.status_code)
+
         if r.status_code != 200:
+            print("Telegram download error:", r.text[:500])
+            r.close()
             abort(r.status_code)
 
         content_type = (
@@ -92,9 +106,14 @@ def serve_file(file_id):
         )
 
         def generate():
-            for chunk in r.iter_content(chunk_size=1024 * 1024):
-                if chunk:
-                    yield chunk
+            try:
+                for chunk in r.iter_content(
+                    chunk_size=1024 * 1024
+                ):
+                    if chunk:
+                        yield chunk
+            finally:
+                r.close()
 
         return Response(
             generate(),
@@ -105,12 +124,13 @@ def serve_file(file_id):
         )
 
     except Exception as e:
-        print("File error:", e)
+        print("FILE ERROR:", repr(e))
         abort(500)
 
 
 def run_web_server():
     port = int(os.environ.get("PORT", 10000))
+
     app.run(
         host="0.0.0.0",
         port=port,
@@ -122,15 +142,20 @@ def run_web_server():
 # TELEGRAM BOT
 # =========================
 
-async def start(update: Update, context: ContextTypes.DEFAULT_TYPE):
+async def start(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
     await update.message.reply_text(
         "👋 Send me a file, video, photo, audio or document "
         "and I will generate a direct link for it."
     )
 
 
-async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
-
+async def handle_media(
+    update: Update,
+    context: ContextTypes.DEFAULT_TYPE
+):
     message = update.message
 
     file_id = None
@@ -175,7 +200,10 @@ async def handle_media(update: Update, context: ContextTypes.DEFAULT_TYPE):
     )
 
 
-async def error_handler(update: object, context: ContextTypes.DEFAULT_TYPE):
+async def error_handler(
+    update: object,
+    context: ContextTypes.DEFAULT_TYPE
+):
     print("Bot error:", context.error)
 
 
@@ -194,7 +222,11 @@ def main():
     web_thread.start()
 
     # Start Telegram bot
-    application = Application.builder().token(BOT_TOKEN).build()
+    application = (
+        Application.builder()
+        .token(BOT_TOKEN)
+        .build()
+    )
 
     application.add_handler(
         CommandHandler("start", start)
