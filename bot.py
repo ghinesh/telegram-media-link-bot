@@ -94,24 +94,23 @@ def serve_file(file_id):
         if not content_type:
             content_type = "application/octet-stream"
 
-    def generate():
-        try:
-            for chunk in r.iter_content(
-                chunk_size=1024 * 1024
-            ):
-                if chunk:
-                    yield chunk
-        finally:
-            r.close()
+                    def generate():
+                        try:
+                for chunk in r.iter_content(
+                    chunk_size=1024 * 1024
+                ):
+                    if chunk:
+                        yield chunk
+            finally:
+                r.close()
 
-    return Response(
-        generate(),
-        content_type=content_type,
-        headers={
-            "Content-Disposition": "inline"
-        },
-    )
-    except Exception as e:
+        return Response(
+            generate(),
+            content_type=content_type,
+            headers={
+                "Content-Disposition": "inline"
+            },
+        )    except Exception as e:
         print("FILE ERROR:", repr(e))
         traceback.print_exc()
         abort(500)
