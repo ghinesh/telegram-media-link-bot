@@ -2,6 +2,7 @@ import os
 import mimetypes
 import threading
 import requests
+import traceback
 
 from flask import Flask, Response, abort
 from telegram import Update
@@ -124,8 +125,9 @@ def serve_file(file_id):
         )
 
     except Exception as e:
-        print("FILE ERROR:", repr(e))
-        abort(500)
+    print("FILE ERROR:", repr(e))
+    traceback.print_exc()
+    raise
 
 
 def run_web_server():
