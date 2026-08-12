@@ -94,15 +94,15 @@ def serve_file(file_id):
         if not content_type:
             content_type = "application/octet-stream"
 
-                    def generate():
-                        try:
-                for chunk in r.iter_content(
-                    chunk_size=1024 * 1024
+def generate():
+    try:
+        for chunk in r.iter_content(
+            chunk_size=1024 * 1024
                 ):
-                    if chunk:
-                        yield chunk
-            finally:
-                r.close()
+                if chunk:
+                    yield chunk
+    finally:
+        r.close()
 
         return Response(
             generate(),
