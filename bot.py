@@ -103,14 +103,14 @@ def serve_file(file_id):
                     yield chunk
         finally:
             r.close()
-        return Response(
-            generate(),
-            content_type=content_type,
-            headers={
-                "Content-Disposition": "inline"
-            },
-        )
 
+    return Response(
+        generate(),
+        content_type=content_type,
+        headers={
+            "Content-Disposition": "inline"
+        },
+    )
     except Exception as e:
         print("FILE ERROR:", repr(e))
         traceback.print_exc()
