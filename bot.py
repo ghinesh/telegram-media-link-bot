@@ -20,7 +20,7 @@ from telegram.ext import (
 
 BOT_TOKEN = os.environ.get("BOT_TOKEN")
 
-# Render automatically provides this variable
+# Render automatically provides this variable.
 BASE_URL = os.environ.get("RENDER_EXTERNAL_URL", "").rstrip("/")
 
 if not BOT_TOKEN:
@@ -56,29 +56,21 @@ def serve_file(file_id):
 
     try:
         # Ask Telegram for the current file path
-        telegram_url = (
-            f"https://api.telegram.org/bot{BOT_TOKEN}/getFile"
-        )
+        url = f"https://api.telegram.org/bot{BOT_TOKEN}/getFile"
 
         result = requests.get(
-            telegram_url,
+            url,
             params={"file_id": file_id},
             timeout=30,
         )
 
-        # Make sure Telegram returned valid JSON
-        result.raise_for_status()
-
         data = result.json()
 
-        # Check Telegram response
         if not data.get("ok"):
-            print("Telegram getFile error:", data)
+            print("Telegram getFile failed:", data)
             abort(404)
 
         file_path = data["result"]["file_path"]
-
-        print("Telegram file path:", file_path)
 
         # Current Telegram download URL
         download_url = (
@@ -86,18 +78,15 @@ def serve_file(file_id):
             f"{BOT_TOKEN}/{file_path}"
         )
 
-        # Stream the file from Telegram
+        # Stream the file to the user
         r = requests.get(
             download_url,
             stream=True,
             timeout=60,
         )
 
-        print("Telegram download status:", r.status_code)
-
         if r.status_code != 200:
-            print("Telegram download error:", r.text[:500])
-            r.close()
+            print("Telegram download failed:", r.status_code)
             abort(r.status_code)
 
         content_type = (
@@ -125,9 +114,9 @@ def serve_file(file_id):
         )
 
     except Exception as e:
-    print("FILE ERROR:", repr(e))
-    traceback.print_exc()
-    raise
+        print("FILE ERROR:", repr(e))
+        traceback.print_exc()
+        abort(500)
 
 
 def run_web_server():
@@ -159,7 +148,6 @@ async def handle_media(
     context: ContextTypes.DEFAULT_TYPE
 ):
     message = update.message
-
     file_id = None
 
     # Document
@@ -214,7 +202,6 @@ async def error_handler(
 # =========================
 
 def main():
-
     # Start Render web server in background
     web_thread = threading.Thread(
         target=run_web_server,
