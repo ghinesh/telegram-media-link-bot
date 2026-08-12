@@ -89,10 +89,10 @@ def serve_file(file_id):
             print("Telegram download failed:", r.status_code)
             abort(r.status_code)
 
-    content_type = mimetypes.guess_type(file_path)[0]
+            content_type = mimetypes.guess_type(file_path)[0]
 
-    if not content_type:
-        content_type = "application/octet-stream"
+        if not content_type:
+            content_type = "application/octet-stream"
 
     def generate():
         try:
